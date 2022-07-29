@@ -1,0 +1,88 @@
+<!-- chat/templates/chat/room.html -->
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'quotes/style.css' %}">
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+</head>
+<body>
+    <div class="row">
+        <div class="column">
+            <p id="quote"></p>
+            <p id="quote-person"></p>
+            <button id="quote-name-reveal" type="button" onclick="revealName()">Show name</button>
+            <button id="new-quote" type="button" onclick="newQuote()">New Quote</button>
+        </div>
+        <div class="column">
+            <h2>Chat</h2>
+            <textarea id="chat-log" cols="100" rows="20"></textarea><br>
+            <input id="chat-message-input" type="text" size="100"><br>
+            <input id="chat-message-submit" type="button" value="Send">
+        </div>
+
+</div>
+    {{ room_name|json_script:"room-name" }}
+    <script>
+        const roomName = JSON.parse(document.getElementById('room-name').textContent);
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/'
+        );
+
+        function revealName() {
+            var quotePersonDisplay = document.getElementById("quote-person");
+            quotePersonDisplay.style.display = "block";
+        }
+
+        function newQuote() {
+            chatSocket.send(JSON.stringify({
+                'context': "new_quote",
+                'message': "new"
+            }));
+        }
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.context === "chat_message") {
+                document.querySelector('#chat-log').value += (data.message + '\n');
+            }
+            if (data.context === "quote") {
+                document.querySelector('#quote').innerHTML = data.message.quote;
+                document.querySelector('#quote-person').innerHTML = data.message.person;
+                var quotePersonDisplay = document.getElementById("quote-person");
+                quotePersonDisplay.style.display = "none";
+            }
+            
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // enter, return
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'context': "chat_message",
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
+    </script>
+</body>
+</html>
