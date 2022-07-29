@@ -74,11 +74,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'quotegame.wsgi.application'
 ASGI_APPLICATION = 'quotegame.asgi.application'
 
+REDIS_HOST=os.environ.get("DJANGO_REDIS_HOST", "localhost")
+REDIS_PORT=os.environ.get("DJANGO_REDIS_PORT", 6379)
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
         },
     },
 }
